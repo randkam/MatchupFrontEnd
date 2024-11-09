@@ -31,7 +31,7 @@ struct NewChatView: View {
     }
 
     func createChat() {
-        let newChat = Chat(id: UUID(), name: chatName, lastMessage: "", timestamp: "Now")
+        let newChat = Chat(id:UUID(), name: chatName)
         chats.append(newChat)
     }
 }

@@ -37,13 +37,16 @@ struct EditCredentialsView: View {
 
     private func saveChanges() {
         // Ensure userId and email are present from UserDefaults
+        let userId = UserDefaults.standard.integer(forKey: "loggedInUserId")
+        
         guard let email = UserDefaults.standard.string(forKey: "loggedInUserEmail"),
-              let userId = UserDefaults.standard.string(forKey: "loggedInUserId") else {
-            errorMessage = "No email or user ID found. Please log in again."
+              userId != 0 else { // 'integer(forKey:)' returns 0 if the value doesn't exist
+            errorMessage = "No valid email or user ID found. Please log in again."
             return
         }
 
         let networkManager = NetworkManager()
+        // Assuming updateUserProfile expects an Int for userId
         networkManager.updateUserProfile(userId: userId, userName: userName, userNickName: userNickName, email: email) { success, error in
             DispatchQueue.main.async {
                 if success {
@@ -56,4 +59,5 @@ struct EditCredentialsView: View {
             }
         }
     }
+
 }

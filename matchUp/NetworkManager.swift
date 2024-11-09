@@ -3,16 +3,25 @@ import CommonCrypto  // For HMAC algorithm
 
 // Define the User model (if not already present in your project)
 struct User: Codable {
-    let userId: String
+    let userId: Int
     let userName: String
     let userNickName: String
     let email: String
     let userPassword: String
     var token: String?  // Assuming you want to store the JWT token here
 }
+struct UserLocation: Codable {
+    let id: Int
+    let userId: Int
+    let locationId: Int
+}
 
 class NetworkManager {
-    let baseURL = "http://localhost:8888/api/v1/users"
+//    static let shared = NetworkManager()
+//       
+//    private init() { } // Prevents external instantiation
+    
+    let baseURL = "http://localhost:9095/api/v1/users"
     let secretKey = "your_secret_key"  // Replace with your actual secret key
     
     let sudoUser = "sudo"
@@ -57,7 +66,7 @@ class NetworkManager {
         let hmacData = Data(hmac)
         return hmacData.base64EncodedString()
     }
-    func updateUserProfile(userId: String, userName: String, userNickName: String, email: String, completion: @escaping (Bool, Error?) -> Void) {
+    func updateUserProfile(userId: Int, userName: String, userNickName: String, email: String, completion: @escaping (Bool, Error?) -> Void) {
         guard let token = UserDefaults.standard.string(forKey: "userToken"),
               let url = URL(string: "\(baseURL)/\(userId)") else {
             print("Profile Update Error: Invalid URL or missing token")
@@ -111,6 +120,55 @@ class NetworkManager {
             }
         }.resume()
     }
+    
+    // Function to fetch user locations and store them in UserDefaults
+       func fetchUserLocations(userId: Int, completion: @escaping (Bool, Error?) -> Void) {
+           guard let url = URL(string: "http://localhost:9095/api/user-locations/user/\(userId)") else {
+               print("Invalid URL for fetching user locations")
+               completion(false, NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"]))
+               return
+           }
+
+           var request = URLRequest(url: url)
+           request.httpMethod = "GET"
+           request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+           
+
+
+
+           URLSession.shared.dataTask(with: request) { data, response, error in
+               if let data = data {
+                   if let jsonString = String(data: data, encoding: .utf8) {
+                       print("Server Response: \(jsonString)")
+                   }
+               }
+               if let error = error {
+                   print("Fetch User Locations Error: \(error.localizedDescription)")
+                   completion(false, error)
+                   return
+               }
+
+               guard let data = data else {
+                   print("Fetch User Locations Error: No data received")
+                   completion(false, NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "No data received from the server."]))
+                   return
+               }
+
+               do {
+                   let locations = try JSONDecoder().decode([UserLocation].self, from: data)
+                   
+                   // Extract location IDs and store in UserDefaults
+                   let locationIds = locations.map { $0.locationId }
+                   UserDefaults.standard.set(locationIds, forKey: "joinedLocations")
+                   
+                   print("Fetched and stored user locations: \(locationIds)")
+                   completion(true, nil)
+               } catch {
+                   print("Fetch User Locations Error: \(error.localizedDescription)")
+                   completion(false, error)
+               }
+           }.resume()
+       }
 
     
     // Updated loginUser function with sudo user and login via either email or username
@@ -139,7 +197,7 @@ class NetworkManager {
     
 
         // Proceed with the regular login if not the sudo user
-        guard let url = URL(string: "\(baseURL)?identifier=\(identifier)&password=\(password)") else {
+        guard let url = URL(string: "\(baseURL)?identifier=\(identifier)") else {
             completion(false, NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"]))
             return
         }
@@ -179,6 +237,7 @@ class NetworkManager {
                         UserDefaults.standard.set(matchedUser.userName, forKey: "loggedInUserName")
                         UserDefaults.standard.set(matchedUser.userNickName, forKey: "loggedInUserNickName")
                         UserDefaults.standard.set(matchedUser.userId, forKey: "loggedInUserId")
+                        
 
                         print("Logged in with email/username: \(matchedUser.email), JWT Token: \(token)")
                         completion(true, nil)
@@ -198,7 +257,7 @@ class NetworkManager {
     }
     
     // Function to create a new account
-    func createAccount(userName: String, userNickName: String, email: String, password: String, completion: @escaping (Bool, Error?) -> Void) {
+    func createAccount(userName: String, userNickName: String, email: String,userId: Int, password: String, completion: @escaping (Bool, Error?) -> Void) {
         guard let url = URL(string: baseURL) else {
             completion(false, NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"]))
             return
@@ -212,7 +271,8 @@ class NetworkManager {
             "userName": userName,
             "userNickName": userNickName,
             "email": email,
-            "userPassword": password  // Ensure this matches the expected key in your backend
+            "userPassword": password,  // Ensure this matches the expected key in your backend
+            "userId" : userId
         ]
         
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)

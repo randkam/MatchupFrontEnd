@@ -64,7 +64,7 @@ struct CreateAccountView: View {
         isLoading = true
 
         let networkManager = NetworkManager()
-        networkManager.createAccount(userName: userName, userNickName: userNickName, email: email, password: password) { success, error in
+        networkManager.createAccount(userName: userName, userNickName: userNickName, email: email, userId:1, password: password) { success, error in
             DispatchQueue.main.async {
                 isLoading = false
                 if success {
