@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-// Define the AppDelegate
+// Define the AppDelegatex  
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         // Perform any final initialization of your application.

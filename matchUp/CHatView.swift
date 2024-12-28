@@ -1,18 +1,42 @@
 import SwiftUI
 
 struct ChatView: View {
-
     @State private var searchText = ""
     @State private var chats: [Chat] = []  // Chats will be fetched based on the user's joined locations
     @State private var showingNewChatView = false
     @State private var joinedLocations: [Int] = []  // Store location IDs as integers
-    
 
     var body: some View {
         NavigationStack {
             VStack {
-                SearchBar(text: $searchText)
+                // Right-aligned New Chat Button
+                Button(action: {
+                    showingNewChatView = true
+                }) {
+                    HStack {
+                        Spacer()  // Push content to the right
+                        Image(systemName: "square.and.pencil")
+                            .font(.system(size: 24))
+                            .foregroundColor(.blue)
+//                        Text("Join Group Chat")
+//                            .font(.headline)
+//                            .foregroundColor(.blue)
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 0.5) // Adjust to your preferred spacing
 
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+                .sheet(isPresented: $showingNewChatView) {
+                    NewChatView(chats: $chats)
+                }
+
+                // Search bar below the New Chat button
+                SearchBar(text: $searchText)
+                    .padding(.top, 0.5) // Adjust to your preferred spacing
+
+
+                // List of chats
                 List {
                     ForEach(chats.filter { searchText.isEmpty ? true : $0.name.contains(searchText) }) { chat in
                         NavigationLink(destination: ChatDetailView(chat: chat)) {
@@ -23,30 +47,17 @@ struct ChatView: View {
                 .listStyle(PlainListStyle())
             }
             .onAppear {
-                loadJoinedChats {success, error in
-                   if let error = error {
-                        // Handle error, e.g., show an alert
+                loadJoinedChats { success, error in
+                    if let error = error {
                         print("Failed to load chats: \(error.localizedDescription)")
                     }
                 }
             }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        showingNewChatView = true
-                    }) {
-                        Image(systemName: "square.and.pencil")
-                            .font(.system(size: 24))
-                            .imageScale(.small)
-                    }
-                }
-            }
-            .sheet(isPresented: $showingNewChatView) {
-                NewChatView(chats: $chats)
-            }
         }
     }
 
+    // Load joined chats based on location IDs stored in UserDefaults
+    // (Keep the rest of the code the same as in your original implementation)
     // Load joined chats based on location IDs stored in UserDefaults
     func loadJoinedChats(completion: @escaping (Bool, Error?) -> Void) {
         let networkManager = NetworkManager()
